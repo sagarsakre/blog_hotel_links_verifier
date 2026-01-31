@@ -30,5 +30,5 @@ jobs:
           EMAIL: ${{ secrets.EMAIL }}
           PASSWORD: ${{ secrets.PASSWORD }}
         run: |
-          python verify_blog_links.py
+          python verify_blog_links.py --blog-url "https://sakrecubes.com/2022/10/bali-complete-travel-guide.html" --output bali_hotels.csv
 
