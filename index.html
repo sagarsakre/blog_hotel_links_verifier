@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotel Links Health Dashboard | Sakre Cubes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1f2937;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        
+        .status-banner {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 16px;
+            font-size: 1.1rem;
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card.success .stat-value {
+            color: #10b981;
+        }
+        
+        .stat-card.warning .stat-value {
+            color: #f59e0b;
+        }
+        
+        .stat-card.error .stat-value {
+            color: #ef4444;
+        }
+        
+        .main-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h2 {
+            font-size: 1.75rem;
+            margin-bottom: 24px;
+            color: #111827;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: #f9fafb;
+        }
+        
+        th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        tr:hover:not(.details-row) {
+            background-color: #f9fafb;
+        }
+        
+        .details-row {
+            background-color: #fef3c7;
+        }
+        
+        .details-row td {
+            padding: 16px 32px;
+        }
+        
+        .unavailable-details {
+            font-size: 0.9rem;
+            color: #92400e;
+        }
+        
+        .unavailable-list {
+            margin-top: 8px;
+            margin-left: 20px;
+            list-style-type: disc;
+        }
+        
+        .unavailable-list li {
+            margin: 4px 0;
+        }
+        
+        .destination-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        
+        .destination-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-warning {
+            background-color: #fed7aa;
+            color: #92400e;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-success {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        .text-muted {
+            color: #9ca3af;
+        }
+        
+        footer {
+            margin-top: 32px;
+            text-align: center;
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        footer a {
+            color: white;
+            text-decoration: underline;
+        }
+        
+        .last-update {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-top: 12px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.75rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 0.85rem;
+            }
+            
+            th, td {
+                padding: 12px 8px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏨 Hotel Links Health Dashboard</h1>
+            <p class="subtitle">Monitoring Agoda affiliate links across all travel blog posts</p>
+            <div class="status-banner">✗ Critical Issues</div>
+            <p class="last-update">Last updated: February 01, 2026 at 05:02 AM UTC</p>
+        </header>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">8</div>
+                <div class="stat-label">Destinations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">455</div>
+                <div class="stat-label">Total Hotels</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-value">368</div>
+                <div class="stat-label">Available</div>
+            </div>
+            <div class="stat-card error">
+                <div class="stat-value">87</div>
+                <div class="stat-label">Issues</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <h2>Destination Status</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Destination</th>
+                        <th class="text-center">Total Hotels</th>
+                        <th class="text-center">Available</th>
+                        <th class="text-center">Issues</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Last Checked</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr>
+            <td>
+                <a href="https://sakrecubes.com/2022/10/bali-complete-travel-guide.html" target="_blank" class="destination-link">Bali</a>
+            </td>
+            <td class="text-center">127</td>
+            <td class="text-center text-success">120</td>
+            <td class="text-center">7</td>
+            <td class="text-center"><span class="badge badge-warning">⚠ 7 Issue(s)</span></td>
+            <td class="text-center text-muted">Feb 01, 05:01 AM</td>
+        </tr>
+        
+        <tr class="details-row">
+            <td colspan="6">
+                <div class="unavailable-details">
+                    <strong>Unavailable Properties:</strong>
+                    <ul class="unavailable-list"><li>Bali Dream Resort</li><li>Alam kawi</li><li>Sarwi homestay</li><li>Umae Villa</li><li>Pondok Bamboo Villa</li><li>Villa White Karma</li><li>Bubble Hotel</li></ul>
+                </div>
+            </td>
+        </tr>
+            
+
+        <tr>
+            <td>
+                <a href="https://sakrecubes.com/2023/09/chikmagaluru.html" target="_blank" class="destination-link">Chikmagaluru</a>
+            </td>
+            <td class="text-center">31</td>
+            <td class="text-center text-success">16</td>
+            <td class="text-center">15</td>
+            <td class="text-center"><span class="badge badge-warning">⚠ 15 Issue(s)</span></td>
+            <td class="text-center text-muted">Feb 01, 05:02 AM</td>
+        </tr>
+        
+        <tr class="details-row">
+            <td colspan="6">
+                <div class="unavailable-details">
+                    <strong>Unavailable Properties:</strong>
+                    <ul class="unavailable-list"><li>Silver Shadow Home Stay</li><li>Rainbow Comforts</li><li>Treebo Trend The Meridian</li><li>Villa Vibes</li><li>Trippr Chikmagaluru</li><li>Chirooss resort</li><li>TRESCA A LUXURY HOTEL</li><li>Heavens gate stay</li><li>The Inchara Hill View HomeStay</li><li>Nexstay Coffee Grove Resort</li><li>MalnadEcostay</li><li>TripThrill Siya Homestay</li><li>Deep Woods Homestay</li><li>The Countryside Villa</li><li>Aakriti Homestay</li></ul>
+                </div>
+            </td>
+        </tr>
+            
+
+        <tr>
+            <td>
+                <a href="https://sakrecubes.com/2022/12/goa-complete-travel-guide.html" target="_blank" class="destination-link">Goa</a>
+            </td>
+            <td class="text-center">102</td>
+            <td class="text-center text-success">73</td>
+            <td class="text-center">29</td>
+            <td class="text-center"><span class="badge badge-warning">⚠ 29 Issue(s)</span></td>
+            <td class="text-center text-muted">Feb 01, 05:01 AM</td>
+        </tr>
+        
+        <tr class="details-row">
+            <td colspan="6">
+                <div class="unavailable-details">
+                    <strong>Unavailable Properties:</strong>
+                    <ul class="unavailable-list"><li>Piggy Calangute – Calangute, North Goa</li><li>Funky Monkey – Anjuna, North Goa</li><li>The Hosteller Goa, Anjuna, North Goa</li><li>Urban Nomads, Morjim, North Goa</li><li>Happy Panda Hostel Arambol</li><li>Pappi chulo – Vagator, North Goa</li><li>Red Door – Anjuna, North Goa</li><li>Crafts – Anjuna, North Goa</li><li>Gaia – Anjuna, North Goa</li><li>Rootsvilla – Anjuna, North Goa</li><li>Whoopers – Anjuna, North Goa</li><li>GoStops – Vagator, North Goa</li><li>Jungle – Vagator, North Goa</li><li>Bon Voyage – Vagator, North Goa</li><li>Jungle – Ashwem, North Goa</li><li>White Balcao – Panjim, North Goa</li><li>Whoopers – Palolem, South Goa</li><li>Lost Hostel – Palolem, South Goa</li><li>Moustache – Morjim, North Goa</li><li>Whoopers Hotel – Anjuna, North Goa</li><li>Minria Guest House – Anjuna, North Goa</li><li>Itsy by Treebo – Morjim, North Goa</li><li>Jack’s Beach house – Calangute X</li><li>Starco – Anjuna</li><li>Brushwood Villa resort – Palolem</li><li>Patnem beach cottages – Palolem</li><li>Pirache art hotel – Calangute</li><li>Taj resort – Dona Paula</li><li>Obrigado Goa beach resort – Cabo de rama</li></ul>
+                </div>
+            </td>
+        </tr>
+            
+
+        <tr>
+            <td>
+                <a href="https://sakrecubes.com/2023/05/munnar-complete-travel-guide.html" target="_blank" class="destination-link">Munnar</a>
+            </td>
+            <td class="text-center">47</td>
+            <td class="text-center text-success">34</td>
+            <td class="text-center">13</td>
+            <td class="text-center"><span class="badge badge-warning">⚠ 13 Issue(s)</span></td>
+            <td class="text-center text-muted">Feb 01, 05:01 AM</td>
+        </tr>
+        
+        <tr class="details-row">
+            <td colspan="6">
+                <div class="unavailable-details">
+                    <strong>Unavailable Properties:</strong>
+                    <ul class="unavailable-list"><li>Zostel Munnar, Palivasal</li><li>Gruenberg Resort, Chitirapuram</li><li>Devonshire Greens, Pallivasal</li><li>Crayons guest house, Anachal</li><li>Tea Dale, Pothamedu</li><li>Isaac’s residency, Silent valley</li><li>Chithirapuram palace, Chithirapuram</li><li>Munnar minds homestay</li><li>Skylark Homes, Devikulam</li><li>Misty Mountain resort</li><li>Kaivalyam wellness retreat</li><li>Violet Woods</li><li>Treebo Trend the hazeberg</li></ul>
+                </div>
+            </td>
+        </tr>
+            
+
+        <tr>
+            <td>
+                <a href="https://sakrecubes.com/2022/06/best-places-to-stay-in-mysore.html" target="_blank" class="destination-link">Mysore</a>
+            </td>
+            <td class="text-center">32</td>
+            <td class="text-center text-success">26</td>
+            <td class="text-center">6</td>
+            <td class="text-center"><span class="badge badge-warning">⚠ 6 Issue(s)</span></td>
+            <td class="text-center text-muted">Feb 01, 05:02 AM</td>
+        </tr>
+        
+        <tr class="details-row">
+            <td colspan="6">
+                <div class="unavailable-details">
+                    <strong>Unavailable Properties:</strong>
+                    <ul class="unavailable-list"><li>REGALIA INN &SUITES</li><li>Le Oak Inn</li><li>Hotel M.B. International</li><li>REGALIA INN &SUITES</li><li>MK Greens Gardenia</li><li>Roambay</li></ul>
+                </div>
+            </td>
+        </tr>
+            
+
+        <tr>
+            <td>
+                <a href="https://sakrecubes.com/2023/12/singapore-complete-guide.html" target="_blank" class="destination-link">Singapore</a>
+            </td>
+            <td class="text-center">75</td>
+            <td class="text-center text-success">66</td>
+            <td class="text-center">9</td>
+            <td class="text-center"><span class="badge badge-warning">⚠ 9 Issue(s)</span></td>
+            <td class="text-center text-muted">Feb 01, 05:02 AM</td>
+        </tr>
+        
+        <tr class="details-row">
+            <td colspan="6">
+                <div class="unavailable-details">
+                    <strong>Unavailable Properties:</strong>
+                    <ul class="unavailable-list"><li>HI HOTEL BUGIS</li><li>Lion Peak Hotel Raffles</li><li>Park View Hotel</li><li>KINN Capsule Hotel, Clarke Quay</li><li>Atlantis Pods @ Little India</li><li>The Assembly Place, A Co-Living Hotel @ Veerasamy, Little India</li><li>Coller Boutique Hostel</li><li>Beary Best Kampong Glam, Bugis</li><li>Atelier, China Town MRT</li></ul>
+                </div>
+            </td>
+        </tr>
+            
+
+        <tr>
+            <td>
+                <a href="https://sakrecubes.com/2023/10/udupi-complete-guide.html" target="_blank" class="destination-link">Udupi</a>
+            </td>
+            <td class="text-center">22</td>
+            <td class="text-center text-success">18</td>
+            <td class="text-center">4</td>
+            <td class="text-center"><span class="badge badge-warning">⚠ 4 Issue(s)</span></td>
+            <td class="text-center text-muted">Feb 01, 05:02 AM</td>
+        </tr>
+        
+        <tr class="details-row">
+            <td colspan="6">
+                <div class="unavailable-details">
+                    <strong>Unavailable Properties:</strong>
+                    <ul class="unavailable-list"><li>Meenakshi Inn – Brahmagiri</li><li>Hotel Udupi Inn, Udupi – Maruthi Veetika</li><li>FOUR SQUARE COMFORTS – Manipal</li><li>White Lotus Hotel – Maruthi Veetika</li></ul>
+                </div>
+            </td>
+        </tr>
+            
+
+        <tr>
+            <td>
+                <a href="https://sakrecubes.com/2024/12/varkala-complete-guide.html" target="_blank" class="destination-link">Varkala</a>
+            </td>
+            <td class="text-center">19</td>
+            <td class="text-center text-success">15</td>
+            <td class="text-center">4</td>
+            <td class="text-center"><span class="badge badge-warning">⚠ 4 Issue(s)</span></td>
+            <td class="text-center text-muted">Feb 01, 05:01 AM</td>
+        </tr>
+        
+        <tr class="details-row">
+            <td colspan="6">
+                <div class="unavailable-details">
+                    <strong>Unavailable Properties:</strong>
+                    <ul class="unavailable-list"><li>Kulture KonnectT</li><li>Mango Villa</li><li>Clafouti Beach Resort</li><li>Cliff Stories</li></ul>
+                </div>
+            </td>
+        </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        
+        <footer>
+            <p>Automated monitoring via GitHub Actions | <a href="https://github.com/sagarsakre/blog_hotel_links_verifier" target="_blank">View Repository</a></p>
+            <p style="margin-top: 8px;">Blog: <a href="https://sakrecubes.com" target="_blank">SakreCubes.com</a></p>
+        </footer>
+    </div>
+</body>
+</html>
