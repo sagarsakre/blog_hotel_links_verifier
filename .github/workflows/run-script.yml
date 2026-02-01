@@ -91,6 +91,35 @@ jobs:
             --output udupi_hotels.csv \
             --destination "Udupi"
             --json-output udupi_summary.json || FAILED=1
+
+          # Andaman
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2024/09/andaman-travel-guide.html" \
+            --output andaman_hotels.csv \
+            --destination "Andaman"
+            --json-output andaman_summary.json || FAILED=1
+          
+          # Kodaikanal
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2022/05/best-places-to-stay-in-kodaikanal.html" \
+            --output kodaikanal_hotels.csv \
+            --destination "Kodaikanal"
+            --json-output kodaikanal_summary.json || FAILED=1
+            
+          # Vietnam
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/vietnam" \
+            --output vietnam_hotels.csv \
+            --destination "Vietnam"
+            --json-output kodaikanal_summary.json || FAILED=1
+
+          # Pondicherry
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2023/09/pondicherry-complete-guide.html" \
+            --output pondicherry_hotels.csv \
+            --destination "Pondicherry"
+            --json-output pondicherry_summary.json || FAILED=1
+            
           
           exit $FAILED
       
