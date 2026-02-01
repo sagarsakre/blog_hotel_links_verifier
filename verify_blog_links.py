@@ -6,6 +6,7 @@ Scrapes blog posts to extract Agoda affiliate links and verifies property availa
 
 import sys
 import csv
+import json
 import logging
 import argparse
 import random
@@ -324,19 +325,98 @@ def save_to_csv(
             writer.writeheader()
             
             for result in verification_results:
+                # Create a copy to avoid modifying original
+                row = result.copy()
+                
                 # Convert dates_tried list to string
-                if isinstance(result.get('dates_tried'), list):
-                    result['dates_tried'] = '; '.join(result['dates_tried'])
+                if isinstance(row.get('dates_tried'), list):
+                    row['dates_tried'] = '; '.join(row['dates_tried'])
                 
                 # Add blog_url to each row
-                result['blog_url'] = blog_url
+                row['blog_url'] = blog_url
                 
-                writer.writerow(result)
+                writer.writerow(row)
         
         logger.info(f"✓ Results saved to {output_file}")
         
     except IOError as e:
         logger.error(f"Failed to save CSV file: {e}")
+
+
+def save_json_summary(
+    blog_url: str,
+    verification_results: List[Dict[str, Any]],
+    output_file: str,
+    logger: logging.Logger
+) -> None:
+    """
+    Save verification summary as JSON for dashboard generation
+    
+    Args:
+        blog_url: The blog URL that was scraped
+        verification_results: List of verification result dictionaries
+        output_file: Output JSON file path
+        logger: Logger instance
+    """
+    if not verification_results:
+        logger.warning("No results to save to JSON")
+        return
+    
+    # Calculate statistics
+    available_count = sum(1 for r in verification_results if r['availability_status'] == 'Available')
+    unavailable_count = sum(1 for r in verification_results if r['availability_status'] == 'Unavailable')
+    error_count = sum(1 for r in verification_results if r['availability_status'] == 'Error')
+    
+    # Extract destination name from blog URL
+    destination = 'Unknown'
+    if 'bali' in blog_url.lower():
+        destination = 'Bali'
+    elif 'varkala' in blog_url.lower():
+        destination = 'Varkala'
+    elif 'munnar' in blog_url.lower():
+        destination = 'Munnar'
+    elif 'goa' in blog_url.lower():
+        destination = 'Goa'
+    elif 'singapore' in blog_url.lower():
+        destination = 'Singapore'
+    elif 'mysore' in blog_url.lower():
+        destination = 'Mysore'
+    elif 'chikmagaluru' in blog_url.lower():
+        destination = 'Chikmagaluru'
+    elif 'udupi' in blog_url.lower():
+        destination = 'Udupi'
+    elif 'andaman' in blog_url.lower():
+        destination = 'Andaman'
+    
+    summary = {
+        'destination': destination,
+        'blog_url': blog_url,
+        'timestamp': datetime.now().isoformat(),
+        'total_hotels': len(verification_results),
+        'available': available_count,
+        'unavailable': unavailable_count,
+        'errors': error_count,
+        'status': 'healthy' if (unavailable_count == 0 and error_count == 0) else 'issues',
+        'unavailable_hotels': [
+            {
+                'hotel_name': r.get('actual_hotel_name') or r.get('hyperlink_text', 'N/A'),
+                'property_id': r.get('property_id', 'N/A'),
+                'url': r.get('agoda_url', ''),
+                'error_message': r.get('error_message', '')
+            }
+            for r in verification_results
+            if r['availability_status'] in ['Unavailable', 'Error']
+        ]
+    }
+    
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(summary, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"✓ JSON summary saved to {output_file}")
+        
+    except IOError as e:
+        logger.error(f"Failed to save JSON file: {e}")
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -374,6 +454,8 @@ Examples:
     optional = parser.add_argument_group('optional arguments')
     optional.add_argument('--output', type=str, default='agoda_verification_report.csv',
                          help='Output CSV file path (default: agoda_verification_report.csv)')
+    optional.add_argument('--json-output', type=str, default=None,
+                         help='Output JSON summary file path for dashboard (optional)')
     optional.add_argument('--currency', type=str, default='INR',
                          help='Currency code for price checks (default: INR)')
     optional.add_argument('--adults', type=int, default=2,
@@ -449,7 +531,7 @@ def main():
                 
                 verification_results.append(result)
         
-        # Step 3: Save results to CSV
+        # Step 3: Save results to CSV and JSON
         logger.info("\n" + "=" * 80)
         logger.info("Verification Summary")
         logger.info("=" * 80)
@@ -465,8 +547,17 @@ def main():
         
         save_to_csv(args.blog_url, verification_results, args.output, logger)
         
+        # Save JSON summary if requested
+        if args.json_output:
+            save_json_summary(args.blog_url, verification_results, args.json_output, logger)
+        
         logger.info("\n✓ Verification completed successfully!")
         logger.info(f"Report saved to: {args.output}")
+        
+        # Return exit code: 1 if any unavailable or errors, 0 if all available
+        if unavailable_count > 0 or error_count > 0:
+            logger.warning(f"⚠ Found {unavailable_count + error_count} issue(s) - exit code 1")
+            return 1
         
         return 0
         
