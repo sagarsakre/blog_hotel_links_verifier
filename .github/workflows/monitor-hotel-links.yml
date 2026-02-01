@@ -4,6 +4,9 @@ on:
   workflow_dispatch:        # Allow manual trigger
   schedule:
     - cron: "0 3 * * *"
+  push:                 # <--- Add this to run on code changes
+    branches: [ main ]
+
 jobs:
   verify-and-notify:
     runs-on: ubuntu-latest
