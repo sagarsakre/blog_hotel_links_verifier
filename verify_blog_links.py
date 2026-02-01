@@ -139,7 +139,7 @@ def extract_property_id(agoda_url: str, logger: logging.Logger) -> Optional[int]
         return None
 
 
-def generate_random_dates(year: int, month: int, logger: logging.Logger) -> Tuple[str, str]:
+def generate_random_dates(year: int, month: int, logger: logging.Logger, num_nights: int = 2) -> Tuple[str, str]:
     """
     Generate random check-in and check-out dates for a given month
     
@@ -147,6 +147,7 @@ def generate_random_dates(year: int, month: int, logger: logging.Logger) -> Tupl
         year: Year (e.g., 2026)
         month: Month (1-12)
         logger: Logger instance
+        num_nights: Number of nights for the stay (default: 2)
         
     Returns:
         Tuple of (check_in_date, check_out_date) in YYYY-MM-DD format
@@ -160,17 +161,17 @@ def generate_random_dates(year: int, month: int, logger: logging.Logger) -> Tupl
     last_day = (next_month - timedelta(days=1)).day
     
     # Generate random check-in date (not too close to end of month)
-    # Leave at least 2 days for checkout
-    max_check_in_day = last_day - 2
+    # Leave at least num_nights days for checkout
+    max_check_in_day = max(1, last_day - num_nights)
     check_in_day = random.randint(1, max_check_in_day)
     
     check_in_date = datetime(year, month, check_in_day)
-    check_out_date = check_in_date + timedelta(days=2)  # 2-night stay
+    check_out_date = check_in_date + timedelta(days=num_nights)
     
     check_in_str = check_in_date.strftime('%Y-%m-%d')
     check_out_str = check_out_date.strftime('%Y-%m-%d')
     
-    logger.debug(f"Generated dates: {check_in_str} to {check_out_str}")
+    logger.debug(f"Generated dates ({num_nights} night(s)): {check_in_str} to {check_out_str}")
     
     return check_in_str, check_out_str
 
@@ -183,10 +184,15 @@ def verify_property_availability(
     logger: logging.Logger
 ) -> Dict[str, Any]:
     """
-    Verify property availability by trying 3 random dates across 3 consecutive months
+    Verify property availability by trying multiple dates with different stay durations
     
-    If a hotel is unavailable in one month (e.g., due to high tourist season),
-    we check the next month to determine if it's genuinely discontinued or just sold out.
+    Strategy:
+    - First 3 attempts: 2-night stays across 3 consecutive months
+    - If all fail, 3 more attempts: 1-night stays across 3 consecutive months
+    - Total: 6 attempts
+    
+    This approach accounts for hotels that may require minimum 2-night stays,
+    while also checking single-night availability as a fallback.
     
     Args:
         property_id: Agoda property ID
@@ -222,7 +228,7 @@ def verify_property_availability(
     
     last_error = None  # Track last error, only set if all attempts fail
     
-    # Try 3 different months (consecutive months to avoid seasonal issues)
+    # Try 2-night stays first (3 attempts across 3 consecutive months)
     for attempt in range(1, 4):
         # Calculate year and month for this attempt
         target_year = start_year
@@ -233,19 +239,20 @@ def verify_property_availability(
             target_month -= 12
             target_year += 1
         
-        logger.info(f"Attempt {attempt}/3 for property {property_id} - checking {target_year}-{target_month:02d}")
+        logger.info(f"Attempt {attempt}/6 for property {property_id} - checking {target_year}-{target_month:02d} (2 nights)")
         
         try:
-            # Generate random dates in the target month
+            # Generate random dates in the target month (2 nights)
             check_in, check_out = generate_random_dates(
                 target_year, 
                 target_month, 
-                logger
+                logger,
+                num_nights=2
             )
-            result['dates_tried'].append(f"{check_in} to {check_out}")
+            result['dates_tried'].append(f"{check_in} to {check_out} (2 nights)")
             
             # Query Agoda API
-            logger.debug(f"Querying API for property {property_id} ({check_in} to {check_out})")
+            logger.debug(f"Querying API for property {property_id} ({check_in} to {check_out}, 2 nights)")
             response = client.hotel_search(
                 hotel_ids=[property_id],
                 check_in=check_in,
@@ -260,16 +267,14 @@ def verify_property_availability(
                 hotel = results[0]
                 result['availability_status'] = 'Available'
                 result['actual_hotel_name'] = hotel.get('hotelName', 'N/A')
-                result['successful_dates'] = f"{check_in} to {check_out}"
+                result['successful_dates'] = f"{check_in} to {check_out} (2 nights)"
                 result['daily_rate'] = hotel.get('dailyRate')
-                # Keep the requested currency, don't override with API response
-                # result['currency'] is already set to the requested currency
-                result['error_message'] = None  # Clear any errors since we succeeded
+                result['error_message'] = None
                 
-                logger.info(f"✓ Property {property_id} is AVAILABLE ({result['actual_hotel_name']})")
+                logger.info(f"✓ Property {property_id} is AVAILABLE ({result['actual_hotel_name']}) - found with 2-night stay")
                 return result
             else:
-                logger.debug(f"No results for property {property_id} in {target_year}-{target_month:02d}")
+                logger.debug(f"No results for property {property_id} in {target_year}-{target_month:02d} (2 nights)")
                 
         except AgodaAPIError as e:
             logger.warning(f"API error on attempt {attempt} for property {property_id}: {e}")
@@ -279,9 +284,67 @@ def verify_property_availability(
             logger.error(f"Unexpected error on attempt {attempt} for property {property_id}: {e}")
             last_error = str(e)
     
-    # All attempts failed - set error message only now
+    # All 2-night attempts failed, now try 1-night stays (3 more attempts)
+    logger.info(f"All 2-night attempts failed for property {property_id}, retrying with 1-night stays")
+    
+    for attempt in range(4, 7):
+        # Calculate year and month for this attempt
+        target_year = start_year
+        target_month = start_month + (attempt - 4)  # Reset to start from same months
+        
+        # Handle year rollover
+        while target_month > 12:
+            target_month -= 12
+            target_year += 1
+        
+        logger.info(f"Attempt {attempt}/6 for property {property_id} - checking {target_year}-{target_month:02d} (1 night)")
+        
+        try:
+            # Generate random dates in the target month (1 night)
+            check_in, check_out = generate_random_dates(
+                target_year, 
+                target_month, 
+                logger,
+                num_nights=1
+            )
+            result['dates_tried'].append(f"{check_in} to {check_out} (1 night)")
+            
+            # Query Agoda API
+            logger.debug(f"Querying API for property {property_id} ({check_in} to {check_out}, 1 night)")
+            response = client.hotel_search(
+                hotel_ids=[property_id],
+                check_in=check_in,
+                check_out=check_out,
+                currency=currency,
+                adults=adults
+            )
+            
+            # Check if results returned
+            results = response.get('results', [])
+            if results and len(results) > 0:
+                hotel = results[0]
+                result['availability_status'] = 'Available'
+                result['actual_hotel_name'] = hotel.get('hotelName', 'N/A')
+                result['successful_dates'] = f"{check_in} to {check_out} (1 night)"
+                result['daily_rate'] = hotel.get('dailyRate')
+                result['error_message'] = None
+                
+                logger.info(f"✓ Property {property_id} is AVAILABLE ({result['actual_hotel_name']}) - found with 1-night stay")
+                return result
+            else:
+                logger.debug(f"No results for property {property_id} in {target_year}-{target_month:02d} (1 night)")
+                
+        except AgodaAPIError as e:
+            logger.warning(f"API error on attempt {attempt} for property {property_id}: {e}")
+            last_error = str(e)
+            
+        except Exception as e:
+            logger.error(f"Unexpected error on attempt {attempt} for property {property_id}: {e}")
+            last_error = str(e)
+    
+    # All 6 attempts failed - set error message only now
     result['error_message'] = last_error
-    logger.info(f"✗ Property {property_id} is UNAVAILABLE (all 3 attempts across 3 months failed)")
+    logger.info(f"✗ Property {property_id} is UNAVAILABLE (all 6 attempts across both 2-night and 1-night stays failed)")
     return result
 
 
@@ -397,6 +460,16 @@ def save_json_summary(
         'unavailable': unavailable_count,
         'errors': error_count,
         'status': 'healthy' if (unavailable_count == 0 and error_count == 0) else 'issues',
+        'all_hotels': [
+            {
+                'hotel_name': r.get('actual_hotel_name') or r.get('hyperlink_text', 'N/A'),
+                'property_id': r.get('property_id', 'N/A'),
+                'url': r.get('agoda_url', ''),
+                'availability_status': r.get('availability_status', 'Unknown'),
+                'error_message': r.get('error_message', '')
+            }
+            for r in verification_results
+        ],
         'unavailable_hotels': [
             {
                 'hotel_name': r.get('actual_hotel_name') or r.get('hyperlink_text', 'N/A'),
