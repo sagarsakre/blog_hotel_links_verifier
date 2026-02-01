@@ -3,9 +3,9 @@ name: Monitor Hotel Links Daily
 on:
   workflow_dispatch:        # Allow manual trigger
   schedule:
-    - cron: "30 10 * * *"
-  push:                 # <--- Add this to run on code changes
-    branches: [ main ]
+    - cron: "*/5 * * * *"
+  repository_dispatch:
+    types: [monitor-hotel-links]
 
 jobs:
   verify-and-notify:
