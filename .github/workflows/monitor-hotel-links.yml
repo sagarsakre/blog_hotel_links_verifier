@@ -1,9 +1,11 @@
 name: Monitor Hotel Links Daily
 
 on:
-  workflow_dispatch:        # Allow manual trigger
+  workflow_dispatch:
+  repository_dispatch:
+    types: [refresh_hotel]
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "0 5 * * *"
 
 jobs:
   verify-and-notify:
