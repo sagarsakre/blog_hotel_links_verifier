@@ -30,4 +30,14 @@ jobs:
           AGODA_SITE_ID: ${{ secrets.AGODA_SITE_ID }}
         run: |
           python verify_blog_links.py --blog-url "https://sakrecubes.com/2022/10/bali-complete-travel-guide.html" --output bali_hotels.csv
+          python verify_blog_links.py --blog-url "https://sakrecubes.com/2024/12/varkala-complete-guide.html" --output varkala_hotels.csv
 
+          python verify_blog_links.py --blog-url "https://sakrecubes.com/2023/05/munnar-complete-travel-guide.html" --output munnar_hotels.csv
+
+          python verify_blog_links.py --blog-url "https://sakrecubes.com/2022/12/goa-complete-travel-guide.html" --output goa_hotels.csv
+
+          python verify_blog_links.py --blog-url "https://sakrecubes.com/2023/12/singapore-complete-guide.html" --output singapore_hotels.csv
+
+          python verify_blog_links.py --blog-url "https://sakrecubes.com/2022/06/best-places-to-stay-in-mysore.html" --output mysore_hotels.csv
+          python verify_blog_links.py --blog-url "https://sakrecubes.com/2023/09/chikmagaluru.html" --output chikmagaluru_hotels.csv
+          python verify_blog_links.py --blog-url "https://sakrecubes.com/2023/10/udupi-complete-guide.html" --output udupi_hotels.csv
