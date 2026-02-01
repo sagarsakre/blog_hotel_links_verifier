@@ -2,7 +2,7 @@ name: Monitor Hotel Links Daily
 
 on:
   schedule:
-    - cron: '30 3 * * *'   # 9:00 AM IST (UTC 03:30)
+    - cron: '30 7 * * *'   # 1:00 PM IST (UTC 07:30)
   workflow_dispatch:        # Allow manual trigger
 
 jobs:
