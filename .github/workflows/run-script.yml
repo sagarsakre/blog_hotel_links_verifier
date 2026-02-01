@@ -23,20 +23,17 @@ jobs:
           cache: 'pip'
       
       - name: Install dependencies
-        working-directory: agoda
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
       - name: Run verification scripts
         id: verify
-        working-directory: agoda
         continue-on-error: true  # Don't stop workflow if verification finds issues
         env:
           AGODA_API_KEY: ${{ secrets.AGODA_API_KEY }}
           AGODA_SITE_ID: ${{ secrets.AGODA_SITE_ID }}
         run: |
-          # Track if any verification fails
           FAILED=0
           
           # Bali
@@ -87,21 +84,20 @@ jobs:
             --output udupi_hotels.csv \
             --json-output udupi_summary.json || FAILED=1
           
-          # Exit with failure code if any verification found issues
           exit $FAILED
       
       - name: Upload verification reports
-        if: always()  # Upload artifacts even if verification found issues
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hotel-verification-reports-${{ github.run_number }}
           path: |
-            agoda/*_hotels.csv
-            agoda/*_summary.json
+            *_hotels.csv
+            *_summary.json
           retention-days: 90
       
       - name: Send email notification
-        if: steps.verify.outcome == 'failure'  # Only send email if issues detected
+        if: steps.verify.outcome == 'failure'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -114,32 +110,24 @@ jobs:
           body: |
             Hotel verification completed with issues detected.
             
-            Please review the attached CSV reports for unavailable properties.
-            
             📊 View full dashboard: https://sagarsakre.github.io/blog_hotel_links_verifier/
-            
             🔗 Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            
             📥 Download all reports from the Actions artifacts.
-            
-            ---
-            This is an automated notification from GitHub Actions.
           attachments: |
-            agoda/*_hotels.csv
+            *_hotels.csv
       
       - name: Generate HTML dashboard
-        if: always()  # Always generate dashboard
-        working-directory: agoda
+        if: always()
         run: |
           python generate_dashboard.py \
             --input-dir . \
             --output docs/index.html
       
       - name: Deploy to GitHub Pages
-        if: always()  # Always deploy dashboard
+        if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./agoda/docs
+          publish_dir: ./docs
           publish_branch: gh-pages
           commit_message: "Update dashboard: ${{ github.event.head_commit.message || 'Scheduled run' }}"
