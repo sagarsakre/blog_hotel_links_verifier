@@ -3,7 +3,7 @@ name: Monitor Hotel Links Daily
 on:
   workflow_dispatch:        # Allow manual trigger
   schedule:
-    - cron: "15 10 * * *"   # 3:45 PM IST (UTC 10:15)
+    - cron: 15 10 * * *   # 3:45 PM IST (UTC 10:15)
 
 jobs:
   verify-and-notify:
