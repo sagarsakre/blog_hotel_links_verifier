@@ -4,8 +4,6 @@ on:
   workflow_dispatch:        # Allow manual trigger
   schedule:
     - cron: "*/5 * * * *"
-  repository_dispatch:
-    types: [monitor-hotel-links]
 
 jobs:
   verify-and-notify:
