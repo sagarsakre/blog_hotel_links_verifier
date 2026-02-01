@@ -40,48 +40,56 @@ jobs:
           python verify_blog_links.py \
             --blog-url "https://sakrecubes.com/2022/10/bali-complete-travel-guide.html" \
             --output bali_hotels.csv \
+            --destination "Bali"
             --json-output bali_summary.json || FAILED=1
           
           # Varkala
           python verify_blog_links.py \
             --blog-url "https://sakrecubes.com/2024/12/varkala-complete-guide.html" \
             --output varkala_hotels.csv \
+            --destination "Varkala"
             --json-output varkala_summary.json || FAILED=1
           
           # Munnar
           python verify_blog_links.py \
             --blog-url "https://sakrecubes.com/2023/05/munnar-complete-travel-guide.html" \
             --output munnar_hotels.csv \
+            --destination "Munnar"
             --json-output munnar_summary.json || FAILED=1
           
           # Goa
           python verify_blog_links.py \
             --blog-url "https://sakrecubes.com/2022/12/goa-complete-travel-guide.html" \
             --output goa_hotels.csv \
+            --destination "Goa"
             --json-output goa_summary.json || FAILED=1
           
           # Singapore
           python verify_blog_links.py \
             --blog-url "https://sakrecubes.com/2023/12/singapore-complete-guide.html" \
             --output singapore_hotels.csv \
+            --destination "Singapore"
             --json-output singapore_summary.json || FAILED=1
           
           # Mysore
           python verify_blog_links.py \
             --blog-url "https://sakrecubes.com/2022/06/best-places-to-stay-in-mysore.html" \
             --output mysore_hotels.csv \
+            --destination "Mysore"
             --json-output mysore_summary.json || FAILED=1
           
           # Chikmagaluru
           python verify_blog_links.py \
             --blog-url "https://sakrecubes.com/2023/09/chikmagaluru.html" \
             --output chikmagaluru_hotels.csv \
+            --destination "Chikmagaluru"
             --json-output chikmagaluru_summary.json || FAILED=1
           
           # Udupi
           python verify_blog_links.py \
             --blog-url "https://sakrecubes.com/2023/10/udupi-complete-guide.html" \
             --output udupi_hotels.csv \
+            --destination "Udupi"
             --json-output udupi_summary.json || FAILED=1
           
           exit $FAILED
