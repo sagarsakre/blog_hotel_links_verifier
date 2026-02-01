@@ -408,6 +408,7 @@ def save_to_csv(
 
 def save_json_summary(
     blog_url: str,
+    destination: str,
     verification_results: List[Dict[str, Any]],
     output_file: str,
     logger: logging.Logger
@@ -417,6 +418,7 @@ def save_json_summary(
     
     Args:
         blog_url: The blog URL that was scraped
+        destination: The destination name for this blog post
         verification_results: List of verification result dictionaries
         output_file: Output JSON file path
         logger: Logger instance
@@ -429,27 +431,6 @@ def save_json_summary(
     available_count = sum(1 for r in verification_results if r['availability_status'] == 'Available')
     unavailable_count = sum(1 for r in verification_results if r['availability_status'] == 'Unavailable')
     error_count = sum(1 for r in verification_results if r['availability_status'] == 'Error')
-    
-    # Extract destination name from blog URL
-    destination = 'Unknown'
-    if 'bali' in blog_url.lower():
-        destination = 'Bali'
-    elif 'varkala' in blog_url.lower():
-        destination = 'Varkala'
-    elif 'munnar' in blog_url.lower():
-        destination = 'Munnar'
-    elif 'goa' in blog_url.lower():
-        destination = 'Goa'
-    elif 'singapore' in blog_url.lower():
-        destination = 'Singapore'
-    elif 'mysore' in blog_url.lower():
-        destination = 'Mysore'
-    elif 'chikmagaluru' in blog_url.lower():
-        destination = 'Chikmagaluru'
-    elif 'udupi' in blog_url.lower():
-        destination = 'Udupi'
-    elif 'andaman' in blog_url.lower():
-        destination = 'Andaman'
     
     summary = {
         'destination': destination,
@@ -507,11 +488,13 @@ Examples:
   # Verify all Agoda links in a blog post
   python verify_blog_links.py \\
     --blog-url "https://sakrecubes.com/2022/10/bali-complete-travel-guide.html" \\
+    --destination "Bali" \\
     --output bali_hotels_verification.csv
   
   # With custom currency and verbose logging
   python verify_blog_links.py \\
     --blog-url "https://example.com/travel-guide" \\
+    --destination "Maldives" \\
     --currency INR \\
     --adults 2 \\
     --verbose
@@ -522,6 +505,8 @@ Examples:
     required = parser.add_argument_group('required arguments')
     required.add_argument('--blog-url', type=str, required=True,
                          help='Blog post URL to scrape for Agoda links')
+    required.add_argument('--destination', type=str, required=True,
+                         help='Destination name for the blog post (e.g., "Bali", "Singapore", "Goa")')
     
     # Optional arguments
     optional = parser.add_argument_group('optional arguments')
@@ -622,7 +607,7 @@ def main():
         
         # Save JSON summary if requested
         if args.json_output:
-            save_json_summary(args.blog_url, verification_results, args.json_output, logger)
+            save_json_summary(args.blog_url, args.destination, verification_results, args.json_output, logger)
         
         logger.info("\n✓ Verification completed successfully!")
         logger.info(f"Report saved to: {args.output}")
