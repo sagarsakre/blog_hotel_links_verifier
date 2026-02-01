@@ -8,8 +8,11 @@ import json
 import argparse
 import sys
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
+
+# Define IST timezone (UTC+5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def load_verification_results(input_dir: str) -> List[Dict[str, Any]]:
@@ -76,11 +79,15 @@ def generate_dashboard_html(results: List[Dict[str, Any]]) -> str:
         overall_badge = '✗ Critical Issues'
         overall_color = '#ef4444'
     
-    # Get last update time
+    # Get last update time and convert to IST
     if results:
         latest_timestamp = max(r.get('timestamp', '') for r in results)
         try:
-            last_update = datetime.fromisoformat(latest_timestamp).strftime('%B %d, %Y at %I:%M %p UTC')
+            dt_utc = datetime.fromisoformat(latest_timestamp)
+            if dt_utc.tzinfo is None:
+                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+            dt_ist = dt_utc.astimezone(IST)
+            last_update = dt_ist.strftime('%B %d, %Y at %I:%M %p IST')
         except:
             last_update = 'Unknown'
     else:
@@ -98,9 +105,13 @@ def generate_dashboard_html(results: List[Dict[str, Any]]) -> str:
         status = result.get('status', 'unknown')
         timestamp = result.get('timestamp', '')
         
-        # Format timestamp
+        # Format timestamp and convert to IST
         try:
-            check_time = datetime.fromisoformat(timestamp).strftime('%b %d, %I:%M %p')
+            dt_utc = datetime.fromisoformat(timestamp)
+            if dt_utc.tzinfo is None:
+                dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+            dt_ist = dt_utc.astimezone(IST)
+            check_time = dt_ist.strftime('%b %d, %I:%M %p IST')
         except:
             check_time = 'N/A'
         
@@ -110,24 +121,9 @@ def generate_dashboard_html(results: List[Dict[str, Any]]) -> str:
         else:
             status_html = f'<span class="badge badge-warning">⚠ {unavailable + errors} Issue(s)</span>'
         
-        # Get all hotels list
+        # Get unavailable hotels only
         all_hotels = result.get('all_hotels', [])
-        available_hotels = [h for h in all_hotels if h.get('availability_status') == 'Available']
         unavailable_hotels = [h for h in all_hotels if h.get('availability_status') in ['Unavailable', 'Error']]
-        
-        # Generate available hotels HTML with hyperlinks
-        if available_hotels:
-            available_html = '<ul class="hotel-list">'
-            for hotel in available_hotels:
-                hotel_name = hotel.get('hotel_name', 'Unknown')
-                hotel_url = hotel.get('url', '')
-                if hotel_url:
-                    available_html += f'<li><a href="{hotel_url}" target="_blank" class="hotel-link">{hotel_name}</a></li>'
-                else:
-                    available_html += f'<li>{hotel_name}</li>'
-            available_html += '</ul>'
-        else:
-            available_html = '<span class="text-muted">None</span>'
         
         # Generate unavailable hotels HTML with hyperlinks
         if unavailable_hotels:
@@ -156,16 +152,12 @@ def generate_dashboard_html(results: List[Dict[str, Any]]) -> str:
         </tr>
         '''
         
-        # Add expandable row showing all properties with hyperlinks
-        if all_hotels:
+        # Add expandable row showing unavailable properties only
+        if unavailable_hotels:
             row_html += f'''
         <tr class="details-row">
             <td colspan="6">
                 <div class="hotel-details">
-                    <div class="hotel-section">
-                        <strong class="section-title available-title">✓ Available Properties ({len(available_hotels)}):</strong>
-                        {available_html}
-                    </div>
                     <div class="hotel-section">
                         <strong class="section-title unavailable-title">✗ Unavailable Properties ({len(unavailable_hotels)}):</strong>
                         {unavailable_html}
@@ -326,7 +318,7 @@ def generate_dashboard_html(results: List[Dict[str, Any]]) -> str:
         }}
         
         .details-row {{
-            background-color: #f9fafb;
+            background-color: #fef3c7;
         }}
         
         .details-row td {{
@@ -335,21 +327,11 @@ def generate_dashboard_html(results: List[Dict[str, Any]]) -> str:
         
         .hotel-details {{
             font-size: 0.9rem;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
         }}
         
         .hotel-section {{
             padding: 16px;
             border-radius: 8px;
-        }}
-        
-        .hotel-section:first-child {{
-            background-color: #d1fae5;
-        }}
-        
-        .hotel-section:last-child {{
             background-color: #fef3c7;
         }}
         
@@ -359,10 +341,6 @@ def generate_dashboard_html(results: List[Dict[str, Any]]) -> str:
             font-size: 0.95rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }}
-        
-        .available-title {{
-            color: #065f46;
         }}
         
         .unavailable-title {{
@@ -471,11 +449,6 @@ def generate_dashboard_html(results: List[Dict[str, Any]]) -> str:
             
             .main-content {{
                 padding: 20px;
-            }}
-            
-            .hotel-details {{
-                grid-template-columns: 1fr;
-                gap: 16px;
             }}
             
             .details-row td {{
