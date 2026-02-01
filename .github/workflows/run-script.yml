@@ -1,43 +1,145 @@
-name: Run Python Script Daily
+name: Monitor Hotel Links Daily
 
 on:
   schedule:
     - cron: '30 3 * * *'   # 9:00 AM IST (UTC 03:30)
-  workflow_dispatch:
+  workflow_dispatch:        # Allow manual trigger
 
 jobs:
-  run:
+  verify-and-notify:
     runs-on: ubuntu-latest
-
+    
+    permissions:
+      contents: write  # Required for GitHub Pages deployment
+    
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
-
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-
+      
       - name: Install dependencies
+        working-directory: agoda
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Run script
+      
+      - name: Run verification scripts
+        id: verify
+        working-directory: agoda
+        continue-on-error: true  # Don't stop workflow if verification finds issues
         env:
           AGODA_API_KEY: ${{ secrets.AGODA_API_KEY }}
           AGODA_SITE_ID: ${{ secrets.AGODA_SITE_ID }}
         run: |
-          python verify_blog_links.py --blog-url "https://sakrecubes.com/2022/10/bali-complete-travel-guide.html" --output bali_hotels.csv
-          python verify_blog_links.py --blog-url "https://sakrecubes.com/2024/12/varkala-complete-guide.html" --output varkala_hotels.csv
-
-          python verify_blog_links.py --blog-url "https://sakrecubes.com/2023/05/munnar-complete-travel-guide.html" --output munnar_hotels.csv
-
-          python verify_blog_links.py --blog-url "https://sakrecubes.com/2022/12/goa-complete-travel-guide.html" --output goa_hotels.csv
-
-          python verify_blog_links.py --blog-url "https://sakrecubes.com/2023/12/singapore-complete-guide.html" --output singapore_hotels.csv
-
-          python verify_blog_links.py --blog-url "https://sakrecubes.com/2022/06/best-places-to-stay-in-mysore.html" --output mysore_hotels.csv
-          python verify_blog_links.py --blog-url "https://sakrecubes.com/2023/09/chikmagaluru.html" --output chikmagaluru_hotels.csv
-          python verify_blog_links.py --blog-url "https://sakrecubes.com/2023/10/udupi-complete-guide.html" --output udupi_hotels.csv
+          # Track if any verification fails
+          FAILED=0
+          
+          # Bali
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2022/10/bali-complete-travel-guide.html" \
+            --output bali_hotels.csv \
+            --json-output bali_summary.json || FAILED=1
+          
+          # Varkala
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2024/12/varkala-complete-guide.html" \
+            --output varkala_hotels.csv \
+            --json-output varkala_summary.json || FAILED=1
+          
+          # Munnar
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2023/05/munnar-complete-travel-guide.html" \
+            --output munnar_hotels.csv \
+            --json-output munnar_summary.json || FAILED=1
+          
+          # Goa
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2022/12/goa-complete-travel-guide.html" \
+            --output goa_hotels.csv \
+            --json-output goa_summary.json || FAILED=1
+          
+          # Singapore
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2023/12/singapore-complete-guide.html" \
+            --output singapore_hotels.csv \
+            --json-output singapore_summary.json || FAILED=1
+          
+          # Mysore
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2022/06/best-places-to-stay-in-mysore.html" \
+            --output mysore_hotels.csv \
+            --json-output mysore_summary.json || FAILED=1
+          
+          # Chikmagaluru
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2023/09/chikmagaluru.html" \
+            --output chikmagaluru_hotels.csv \
+            --json-output chikmagaluru_summary.json || FAILED=1
+          
+          # Udupi
+          python verify_blog_links.py \
+            --blog-url "https://sakrecubes.com/2023/10/udupi-complete-guide.html" \
+            --output udupi_hotels.csv \
+            --json-output udupi_summary.json || FAILED=1
+          
+          # Exit with failure code if any verification found issues
+          exit $FAILED
+      
+      - name: Upload verification reports
+        if: always()  # Upload artifacts even if verification found issues
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotel-verification-reports-${{ github.run_number }}
+          path: |
+            agoda/*_hotels.csv
+            agoda/*_summary.json
+          retention-days: 90
+      
+      - name: Send email notification
+        if: steps.verify.outcome == 'failure'  # Only send email if issues detected
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "⚠️ Agoda Hotel Links - Unavailable Properties Detected"
+          to: sakrecubes@gmail.com
+          from: GitHub Actions <noreply@github.com>
+          body: |
+            Hotel verification completed with issues detected.
+            
+            Please review the attached CSV reports for unavailable properties.
+            
+            📊 View full dashboard: https://sagarsakre.github.io/blog_hotel_links_verifier/
+            
+            🔗 Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            📥 Download all reports from the Actions artifacts.
+            
+            ---
+            This is an automated notification from GitHub Actions.
+          attachments: |
+            agoda/*_hotels.csv
+      
+      - name: Generate HTML dashboard
+        if: always()  # Always generate dashboard
+        working-directory: agoda
+        run: |
+          python generate_dashboard.py \
+            --input-dir . \
+            --output docs/index.html
+      
+      - name: Deploy to GitHub Pages
+        if: always()  # Always deploy dashboard
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./agoda/docs
+          publish_branch: gh-pages
+          commit_message: "Update dashboard: ${{ github.event.head_commit.message || 'Scheduled run' }}"
